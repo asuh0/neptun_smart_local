@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 STEP_TCP_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("name", default="Neptun_Smart"): str,
-        vol.Required("host_ip", default="192.168.1.65"): str,
+        vol.Required("host_ip"): str,
         vol.Required("host_port", default="503"): str,
     }
 )
