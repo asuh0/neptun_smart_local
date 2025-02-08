@@ -4,10 +4,10 @@
   "codeowners": ["@sergeylysov"],
   "config_flow": true,
   "dependencies": ["modbus"],
-  "documentation": "",
+  "documentation": "https://github.com/sergeylysov/neptun_smart_local",
   "homekit": {},
   "iot_class": "local_polling",
-  "issue_tracker": "",
+  "issue_tracker": "https://github.com/sergeylysov/neptun_smart_local/issue/",
   "requirements": ["pymodbus==3.8.3"],
   "version": "1.0.0",
   "zeroconf": []
