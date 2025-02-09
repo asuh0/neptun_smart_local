@@ -40,6 +40,7 @@ async def async_validate_device( port, address: str | None) -> None:
     if len(result.registers) == 0:
         client.close()
         raise ValueError("invalid_response")
+    client.close()
 
 
 class NeptunSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
