@@ -5,7 +5,6 @@ import datetime
 import logging
 
 from bitstring import BitArray
-from homeassistant.components.modbus import modbus
 from homeassistant.core import HomeAssistant
 
 from .hub import modbus_hub
