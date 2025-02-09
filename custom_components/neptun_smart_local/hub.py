@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import datetime
 from pymodbus import ModbusException
-from pymodbus.client import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient, AsyncModbusTcpClient
 from pymodbus.framer import FramerType
 
 
 class modbus_hub:
-    def __init__(self,host,port) -> None:
+    def __init__(self, host, port) -> None:
         self._client = ModbusTcpClient(
             host=host,
             port=port,

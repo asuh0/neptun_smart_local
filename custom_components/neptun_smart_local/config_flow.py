@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 
-import logging
+import asyncio
 from typing import Any, Optional
 
 from pymodbus.client import  AsyncModbusTcpClient
@@ -12,7 +12,7 @@ from homeassistant import config_entries
 
 from .const import DOMAIN
 from .registers import NeptunSmartRegisters
-_LOGGER = logging.getLogger(__name__)
+
 STEP_TCP_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("name", default="Neptun_Smart"): str,
@@ -29,7 +29,7 @@ async def async_validate_device( port, address: str | None) -> None:
     try:
         await client.connect()
         result = await client.read_holding_registers(
-            address=NeptunSmartRegisters.module_config, count=1 ,slave=240 #, slave=int(unit_id)
+            address=NeptunSmartRegisters.module_config, count=1 ,slave=240
         )
     except ModbusException as value_error:
         client.close()
@@ -69,6 +69,8 @@ class NeptunSmartConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not errors:
                 # Input is valid, set data.
                 self.data = user_input
+
+                await asyncio.sleep(1)
                 return self.async_create_entry(title=user_input["name"], data=self.data)
         return self.async_show_form(
             step_id="tcp", data_schema=STEP_TCP_DATA_SCHEMA, errors=errors
