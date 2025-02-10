@@ -25,19 +25,21 @@ class LineTypeConfig(SelectEntity):
         self._device = device
         self._line_number = line_number
         self._state = self._device.get_line_config_type(line_number=line_number)      #True = button, False = sensor
-        self._attr_unique_id = f"Line_{self._line_number}_config"
+        self._attr_unique_id = f"{device.get_name()}_Line_{self._line_number}_config"
         self._attr_name = f"Line {self._line_number} type"
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
         if self._device.get_line_config_type(line_number=line_number):
             self._attr_current_option = "Button"
         else:
             self._attr_current_option = "Sensor"
+
     async def async_select_option(self, option: str) -> None:
         if option == "Sensor":
             self._state = False
         else:
             self._state = True
-        self._device.set_line_type(self._line_number,self._state)
+        self._device.set_line_type(self._line_number, self._state)
+
     @property
     def options(self) -> list[str]:
         """Return options."""
@@ -49,18 +51,21 @@ class LineTypeConfig(SelectEntity):
         return {
             "identifiers": {(DOMAIN, self._device.get_name())}
         }
+
     async def async_update(self) -> None:
         """Fetch new state data for the select."""
         if self._device.get_line_config_type(self._line_number):
             self._attr_current_option = "Button"
         else:
             self._attr_current_option = "Sensor"
+
+
 class LineGroupConfig(SelectEntity):
     def __init__(self, device: NeptunSmart, line_number):
         self._device = device
         self._line_number = line_number
         self._state = self._device.get_line_group(line_number=line_number)
-        self._attr_unique_id = f"Line_{self._line_number}_group_ config"
+        self._attr_unique_id = f"{device.get_name()}_Line_{self._line_number}_group_ config"
         self._attr_name = f"Line {self._line_number} group"
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
         self._state = self._device.get_line_group(line_number=line_number)
@@ -102,11 +107,12 @@ class LineGroupConfig(SelectEntity):
         else:
             self._attr_current_option = "Both"
 
+
 class RelaySwitchWhenCloseValve(SelectEntity):
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._state = self._device.get_relay_config_valve() #0 - not switch, 1 - first group, 2 - second group, 3 - both group
-        self._attr_unique_id = f"RelaySwitchWhenCloseValve_config"
+        self._attr_unique_id = f"{device.get_name()}_RelaySwitchWhenCloseValve_config"
         self._attr_name = f"Switch relay when close valve"
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
         if self._state == 0:
@@ -158,7 +164,7 @@ class RelaySwitchWhenAlert(SelectEntity):
     def __init__(self, device: NeptunSmart):
         self._device = device
         self._state = self._device.get_relay_config_alert() #0 - not switch, 1 - first group, 2 - second group, 3 - both group
-        self._attr_unique_id = f"RelaySwitchAlert_config"
+        self._attr_unique_id = f"{device.get_name()}_RelaySwitchAlert_config"
         self._attr_name = f"Switch relay when alert"
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
         if self._state == 0:
@@ -211,7 +217,7 @@ class WirelessSensorGroupConfig(SelectEntity):
         self._device = device
         self._sensor = sensor
         self._sensor_number = sensor_number
-        self._attr_unique_id = f"WirelessSensor{self._sensor.get_address()}_group_ config"
+        self._attr_unique_id = f"{device.get_name()}_WirelessSensor{self._sensor.get_address()}_group_ config"
         self._attr_name = f"Wireless Sensor {self._sensor_number} group"
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
         self._state = self._sensor.get_group_config()

@@ -11,13 +11,9 @@ from .const import DOMAIN
 from .device import NeptunSmart
 PLATFORMS = [
     "binary_sensor",
-    # "button",
-    # "climate",
-    # "number",
     "select",
     "sensor",
     "switch",
-    # "water_heater",
 ]
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,18 +26,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     name = entry.data["name"]
     host_port = entry.data["host_port"]
     host_ip = entry.data["host_ip"]
-
-
     device = NeptunSmart(hass, name, host_ip, host_port)
-    # try:
-    #     await device.setup()
-    # except ValueError as ex:
-    #     raise ConfigEntryNotReady(f"Timeout while connecting {host_ip}") from ex
     hass.data[DOMAIN][entry.entry_id] = device
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     )
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

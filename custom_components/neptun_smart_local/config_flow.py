@@ -21,7 +21,7 @@ STEP_TCP_DATA_SCHEMA = vol.Schema(
     }
 )
 
-async def async_validate_device( port, address: str | None) -> None:
+async def async_validate_device(port, address: str | None) -> None:
     client = AsyncModbusTcpClient(
         address,
         port=port,

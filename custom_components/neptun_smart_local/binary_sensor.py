@@ -22,12 +22,13 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     binary_sensors.append(DischargeWirelessSensors(device))
     binary_sensors.append(LostWirelessSensors(device))
     for i in 1, 2, 3, 4:
-        binary_sensors.append(WiredLineAlertStatus(device=device,line_number=i))
+        binary_sensors.append(WiredLineAlertStatus(device=device, line_number=i))
     for i in range(0, device.get_number_of_connected_wireless_sensors()):
         binary_sensors.append(WirelessSensorAlertStatus(device, i+1, device.wireless_sensors[i]))
         binary_sensors.append(WirelessSensorDischargeStatus(device, i + 1, device.wireless_sensors[i]))
         binary_sensors.append(WirelessSensorLostStatus(device, i + 1, device.wireless_sensors[i]))
     async_add_entities(binary_sensors, update_before_add=False)
+
 
 class MainModule(BinarySensorEntity):
 
@@ -76,10 +77,9 @@ class FirstGroupModuleAlert(BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, device: NeptunSmart):
-
         self._device = device
         # Уникальный идентификатор
-        self._attr_unique_id = "first_group_alarm_module_alert"
+        self._attr_unique_id = f"{device.get_name()}_first_group_alarm_module_alert"
         # Отображаемое имя
         self._attr_name = "First group alarm"
 
@@ -107,7 +107,7 @@ class SecondGroupModuleAlert(BinarySensorEntity):
 
         self._device = device
         # Уникальный идентификатор
-        self._attr_unique_id = "second_group_alarm_module_alert"
+        self._attr_unique_id = f"{device.get_name()}_second_group_alarm_module_alert"
         # Отображаемое имя
         self._attr_name = "Second group alarm"
 
@@ -131,14 +131,14 @@ class DischargeWirelessSensors(BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
 
         self._device = device
         # Уникальный идентификатор
-        self._attr_unique_id = "discharge_wireless_sensors"
+        self._attr_unique_id = f"{device.get_name()}_discharge_wireless_sensors"
         # Отображаемое имя
         self._attr_name = "Discharge Wireless Sensors"
-        # self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
     def device_info(self):
         return {"identifiers": {(DOMAIN, self._device.get_name())}}
@@ -163,10 +163,10 @@ class LostWirelessSensors(BinarySensorEntity):
 
         self._device = device
         # Уникальный идентификатор
-        self._attr_unique_id = "lost_wireless_sensors"
+        self._attr_unique_id = f"{device.get_name()}_lost_wireless_sensors"
         # Отображаемое имя
         self._attr_name = "Lost Wireless Sensors"
-        # self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
     @property
     def device_info(self):
         return {"identifiers": {(DOMAIN, self._device.get_name())}}
@@ -192,7 +192,7 @@ class WiredLineAlertStatus(BinarySensorEntity):
         self._device = device
         self._line_number = line_number
         # Уникальный идентификатор
-        self._attr_unique_id = f"WiredAlertStatus_line{line_number}"
+        self._attr_unique_id = f"{device.get_name()}_WiredAlertStatus_line{line_number}"
         # Отображаемое имя
         self._attr_name = f"Wired line {line_number} alert status"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -217,13 +217,13 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, device:NeptunSmart, sensor_number, sensor:WirelessSensor):
+    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
 
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
-        self._attr_unique_id = f"WirelessAlertStatus_sensor{sensor_number}"
+        self._attr_unique_id = f"{device.get_name()}_WirelessAlertStatus_sensor{sensor_number}"
         # Отображаемое имя
         self._attr_name = f"Wireless sensor {sensor_number} alert status"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -254,7 +254,7 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
-        self._attr_unique_id = f"WirelessDischargeStatus_sensor{sensor_number}"
+        self._attr_unique_id = f"{device.get_name()}_WirelessDischargeStatus_sensor{sensor_number}"
         # Отображаемое имя
         self._attr_name = f"Wireless sensor {sensor_number} discharge status"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -279,13 +279,13 @@ class WirelessSensorLostStatus(BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, device:NeptunSmart, sensor_number, sensor:WirelessSensor):
+    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
 
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
-        self._attr_unique_id = f"WirelessLostStatus_sensor{sensor_number}"
+        self._attr_unique_id = f"{device.get_name()}_WirelessLostStatus_sensor{sensor_number}"
         # Отображаемое имя
         self._attr_name = f"Wireless sensor {sensor_number} lost status"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC

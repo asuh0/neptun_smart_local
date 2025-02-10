@@ -7,8 +7,8 @@
   "documentation": "https://github.com/sergeylysov/neptun_smart_local",
   "homekit": {},
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/sergeylysov/neptun_smart_local/issue/",
+  "issue_tracker": "https://github.com/sergeylysov/neptun_smart_local/issues/",
   "requirements": ["pymodbus==3.8.3"],
-  "version": "1.0.2",
+  "version": "1.0.3",
   "zeroconf": []
 }

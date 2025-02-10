@@ -12,21 +12,21 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     """Set up the switch platform."""
     device = HomeAssistant.data[DOMAIN][config_entry.entry_id]
     switches = []
-    switches.append(Valve_1_zone(device,"Valve_1_zone"))
-    switches.append(Valve_2_zone(device, "Valve_2_zone"))
-    switches.append(Floor_washing_mode(device=device,name="Floor_washing_mode"))
+    switches.append(Valve_1_zone(device))
+    switches.append(Valve_2_zone(device))
+    switches.append(Floor_washing_mode(device=device))
     switches.append(Connecting_wireless_sensors_mode(device))
     switches.append(Dual_group_mode(device))
     switches.append((Close_valve_when_lost_sensors_mode(device)))
     switches.append(Lock_buttons(device))
     async_add_entities(switches, update_before_add=False)
 
+
 class Valve_1_zone(SwitchEntity):
-    def __init__(self,device:NeptunSmart,name):
+    def __init__(self, device: NeptunSmart):
         self._device = device
-        self._name = name
         self._attr_name = "Valve First Zone"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Valve_1_zone"
         self._attr_is_on = self._device.get_first_group_valve_state()
 
     async def async_turn_off(self, **kwargs):
@@ -52,13 +52,15 @@ class Valve_1_zone(SwitchEntity):
     @property
     def icon(self):
         return "mdi:pipe-valve"
+
+
 class Valve_2_zone(SwitchEntity):
-    def __init__(self,device:NeptunSmart,name):
+    def __init__(self, device: NeptunSmart):
         self._device = device
-        self._name = name
         self._attr_name = "Valve Second Zone"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Valve_2_zone"
         self._attr_is_on = self._device.get_second_group_valve_state()
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
@@ -82,13 +84,15 @@ class Valve_2_zone(SwitchEntity):
     @property
     def icon(self):
         return "mdi:pipe-valve"
+
+
 class Floor_washing_mode(SwitchEntity):
-    def __init__(self,device:NeptunSmart,name):
+    def __init__(self, device: NeptunSmart):
         self._device = device
-        self._name = name
         self._attr_name = "Floor Washing Mode"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Floor_washing_mode"
         self._attr_is_on = self._device.get_floor_washing_mode()
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
@@ -115,14 +119,16 @@ class Floor_washing_mode(SwitchEntity):
             return "mdi:pail"
         else:
             return "mdi:pail-off"
+
+
 class Connecting_wireless_sensors_mode(SwitchEntity):
     def __init__(self,device:NeptunSmart):
         self._device = device
-        self._name = "Connecting_wireless_sensors_mode"
         self._attr_name = "Connecting wireless sensors mode"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Connecting_wireless_sensors_mode"
         self._attr_is_on = self._device.get_connecting_wireless_sensors_mode()
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
@@ -149,14 +155,16 @@ class Connecting_wireless_sensors_mode(SwitchEntity):
             return "mdi:router-wireless"
         else:
             return "mdi:router-wireless-off"
+
+
 class Dual_group_mode(SwitchEntity):
-    def __init__(self,device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
         self._device = device
-        self._name = "Dual_group_mode"
         self._attr_name = "Dual group mode"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_dual_group_mode"
         self._attr_is_on = self._device.get_dual_group_mode()
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
@@ -183,14 +191,16 @@ class Dual_group_mode(SwitchEntity):
             return "mdi:numeric-2-circle-outline"
         else:
             return "mdi:numeric-1-circle-outline"
+
+
 class Close_valve_when_lost_sensors_mode(SwitchEntity):
-    def __init__(self,device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
         self._device = device
-        self._name = "Close_valve_when_lost_sensors_mode"
         self._attr_name = "Close valve when lost sensors"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Close_valve_when_lost_sensors_mode"
         self._attr_is_on = self._device.get_close_valve_when_lost_sensors_mode()
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
@@ -214,14 +224,16 @@ class Close_valve_when_lost_sensors_mode(SwitchEntity):
     @property
     def icon(self):
        return "mdi:pipe-valve"
+
+
 class Lock_buttons(SwitchEntity):
     def __init__(self,device:NeptunSmart):
         self._device = device
-        self._name = "Lock_buttons"
         self._attr_name = "Lock Buttons"
-        self._attr_unique_id = self._name
+        self._attr_unique_id = f"{device.get_name()}_Lock_buttons"
         self._attr_is_on = self._device.get_lock_buttons()
         self._attr_entity_category = EntityCategory.CONFIG  # DIAGNOSTIC
+
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
