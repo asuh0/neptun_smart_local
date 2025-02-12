@@ -47,12 +47,13 @@ class WirelessSensorsConnected(SensorEntity):
 
 
 class WirelessSensorsBatteryLevel(SensorEntity):
-    def __init__(self, device:NeptunSmart, sensor_number, sensor: WirelessSensor):
+    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         self._attr_unique_id = f"{device.get_name()}_WirelessSensors{sensor_number}BatteryLevel"
         self._attr_name = f"Wireless sensor {sensor_number} battery level"
+        self._attr_device_class = SensorDeviceClass.BATTERY
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_native_value = self._sensor.get_battery_level()
 

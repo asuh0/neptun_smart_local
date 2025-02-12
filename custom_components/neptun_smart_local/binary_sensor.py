@@ -14,7 +14,7 @@ SCAN_INTERVAL = timedelta(seconds=10)
 
 
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
-    device:NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
+    device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
     binary_sensors = []
     binary_sensors.append(MainModule(device=device))
     binary_sensors.append(FirstGroupModuleAlert(device))
