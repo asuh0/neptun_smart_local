@@ -10,7 +10,7 @@ from homeassistant.components.binary_sensor import (
 )
 from . import NeptunSmart
 from .device import WirelessSensor
-SCAN_INTERVAL = timedelta(seconds=5)
+SCAN_INTERVAL = timedelta(seconds=10)
 
 
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):

@@ -326,7 +326,7 @@ class WirelessSensor():
 
     def set_group_config(self, config):
         self._hub.connect()
-        self._hub.write_holding_register(address=self._address_value,value=config)
+        self._hub.write_holding_register(address=self._address_config, value=config)
         self._hub.disconnect()
 
     def get_battery_level(self):
