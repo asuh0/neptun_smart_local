@@ -10,10 +10,11 @@ from .const import DOMAIN
 SCAN_INTERVAL = timedelta(seconds=5)
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     """Set up the switch platform."""
-    device = HomeAssistant.data[DOMAIN][config_entry.entry_id]
+    device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
     switches = []
     switches.append(Valve_1_zone(device))
-    switches.append(Valve_2_zone(device))
+    if device.get_dual_group_mode():
+        switches.append(Valve_2_zone(device))
     switches.append(Floor_washing_mode(device=device))
     switches.append(Connecting_wireless_sensors_mode(device))
     switches.append(Dual_group_mode(device))
@@ -32,12 +33,16 @@ class Valve_1_zone(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_first_group_valve_state(False)
+        await self._device.set_first_group_valve_state(False)
+        if not self._device.get_dual_group_mode():
+            await self._device.set_second_group_valve_state(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_first_group_valve_state(True)
+        await self._device.set_first_group_valve_state(True)
+        if not self._device.get_dual_group_mode():
+            await self._device.set_second_group_valve_state(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
@@ -64,16 +69,17 @@ class Valve_2_zone(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_second_group_valve_state(False)
+        await self._device.set_second_group_valve_state(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_second_group_valve_state(True)
+        await self._device.set_second_group_valve_state(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_second_group_valve_state()
+        self._attr_available = self._device.get_dual_group_mode()
 
     @property
     def device_info(self):
@@ -86,6 +92,7 @@ class Valve_2_zone(SwitchEntity):
         return "mdi:pipe-valve"
 
 
+
 class Floor_washing_mode(SwitchEntity):
     def __init__(self, device: NeptunSmart):
         self._device = device
@@ -96,12 +103,12 @@ class Floor_washing_mode(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_floor_washing_mode(False)
+        await self._device.set_floor_washing_mode(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_floor_washing_mode(True)
+        await self._device.set_floor_washing_mode(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
@@ -132,12 +139,12 @@ class Connecting_wireless_sensors_mode(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_connecting_wireless_sensors_mode(False)
+        await self._device.set_connecting_wireless_sensors_mode(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_connecting_wireless_sensors_mode(True)
+        await self._device.set_connecting_wireless_sensors_mode(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
@@ -168,12 +175,12 @@ class Dual_group_mode(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_dual_group_mode(False)
+        await self._device.set_dual_group_mode(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_dual_group_mode(True)
+        await self._device.set_dual_group_mode(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
@@ -204,12 +211,12 @@ class Close_valve_when_lost_sensors_mode(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_close_valve_when_lost_sensors_mode(False)
+        await self._device.set_close_valve_when_lost_sensors_mode(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_close_valve_when_lost_sensors_mode(True)
+        await self._device.set_close_valve_when_lost_sensors_mode(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
@@ -227,7 +234,7 @@ class Close_valve_when_lost_sensors_mode(SwitchEntity):
 
 
 class Lock_buttons(SwitchEntity):
-    def __init__(self,device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
         self._device = device
         self._attr_name = "Lock Buttons"
         self._attr_unique_id = f"{device.get_name()}_Lock_buttons"
@@ -237,12 +244,12 @@ class Lock_buttons(SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn the entity off."""
         self._attr_is_on = False
-        self._device.set_lock_buttons(False)
+        await self._device.set_lock_buttons(False)
 
     async def async_turn_on(self, **kwargs):
         """Turn the entity on."""
         self._attr_is_on = True
-        self._device.set_lock_buttons(True)
+        await self._device.set_lock_buttons(True)
 
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""

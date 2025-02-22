@@ -18,7 +18,8 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     binary_sensors = []
     binary_sensors.append(MainModule(device=device))
     binary_sensors.append(FirstGroupModuleAlert(device))
-    binary_sensors.append(SecondGroupModuleAlert(device))
+    if device.get_dual_group_mode():
+        binary_sensors.append(SecondGroupModuleAlert(device))
     binary_sensors.append(DischargeWirelessSensors(device))
     binary_sensors.append(LostWirelessSensors(device))
     for i in 1, 2, 3, 4:
@@ -27,7 +28,7 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
         binary_sensors.append(WirelessSensorAlertStatus(device, i+1, device.wireless_sensors[i]))
         binary_sensors.append(WirelessSensorDischargeStatus(device, i + 1, device.wireless_sensors[i]))
         binary_sensors.append(WirelessSensorLostStatus(device, i + 1, device.wireless_sensors[i]))
-    async_add_entities(binary_sensors, update_before_add=False)
+    async_add_entities(binary_sensors, update_before_add=True)
 
 
 class MainModule(BinarySensorEntity):
@@ -64,8 +65,8 @@ class MainModule(BinarySensorEntity):
     def is_on(self) -> bool:
         return self._is_on
 
-    def update(self) -> None:
-        self._device.update()
+    async def async_update(self) -> None:
+        await self._device.update()
         if (self._device.get_first_group_alarm()) | (self._device.get_second_group_alarm()):
             self._is_on = True
         else:
@@ -80,6 +81,7 @@ class FirstGroupModuleAlert(BinarySensorEntity):
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_first_group_alarm_module_alert"
+        # self._attr_available = True
         # Отображаемое имя
         self._attr_name = "First group alarm"
 
@@ -103,13 +105,14 @@ class SecondGroupModuleAlert(BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
 
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_second_group_alarm_module_alert"
         # Отображаемое имя
         self._attr_name = "Second group alarm"
+        # self._attr_enabled = False
 
     @property
     def device_info(self):
@@ -125,6 +128,9 @@ class SecondGroupModuleAlert(BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self._device.get_second_group_alarm()
+
+    async def async_update(self) -> None:
+        self._attr_available = self._device.get_dual_group_mode()
 
 
 class DischargeWirelessSensors(BinarySensorEntity):
@@ -159,7 +165,7 @@ class LostWirelessSensors(BinarySensorEntity):
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def __init__(self, device:NeptunSmart):
+    def __init__(self, device: NeptunSmart):
 
         self._device = device
         # Уникальный идентификатор

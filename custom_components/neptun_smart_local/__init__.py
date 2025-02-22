@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+# import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,7 +16,7 @@ PLATFORMS = [
     "switch",
 ]
 
-_LOGGER = logging.getLogger(__name__)
+# _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
@@ -27,6 +27,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host_port = entry.data["host_port"]
     host_ip = entry.data["host_ip"]
     device = NeptunSmart(hass, name, host_ip, host_port)
+    try:
+        await device.init_sensors()
+        await device.update()
+    except ValueError as ex:
+        raise ConfigEntryNotReady(f"Timeout while connecting {host_ip}") from ex
     hass.data[DOMAIN][entry.entry_id] = device
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

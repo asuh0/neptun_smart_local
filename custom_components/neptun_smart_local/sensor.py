@@ -9,21 +9,22 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfVolume
+from homeassistant.const import (UnitOfVolume,PERCENTAGE)
 from .const import DOMAIN
 from .device import NeptunSmart, WirelessSensor, Counter
 
-SCAN_INTERVAL = timedelta(seconds=5)
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
-    device:NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
+    device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
     sensors = []
     sensors.append(WirelessSensorsConnected(device=device))
-    for i in range (0, device.get_number_of_connected_wireless_sensors()):
+    for i in range(0, device.get_number_of_connected_wireless_sensors()):
         sensors.append(WirelessSensorsBatteryLevel(device, i+1, device.wireless_sensors[i]))
         sensors.append(WirelessSensorsSignalLevel(device, i+1, device.wireless_sensors[i]))
     for counter in device.counters:
-        sensors.append(CounterSensor(device,counter))
+        sensors.append(CounterSensor(device, counter))
     async_add_entities(sensors, update_before_add=False)
+
+
 class WirelessSensorsConnected(SensorEntity):
     def __init__(self, device: NeptunSmart):
         self._device = device
@@ -54,6 +55,7 @@ class WirelessSensorsBatteryLevel(SensorEntity):
         self._attr_unique_id = f"{device.get_name()}_WirelessSensors{sensor_number}BatteryLevel"
         self._attr_name = f"Wireless sensor {sensor_number} battery level"
         self._attr_device_class = SensorDeviceClass.BATTERY
+        self._attr_native_unit_of_measurement = PERCENTAGE
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_native_value = self._sensor.get_battery_level()
 

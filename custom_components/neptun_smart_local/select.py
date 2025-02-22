@@ -14,12 +14,16 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     selects = []
     for i in 1, 2, 3, 4:
         selects.append(LineTypeConfig(device=device, line_number=i))
-        selects.append(LineGroupConfig(device=device, line_number=i))
+        if device.get_dual_group_mode():
+            selects.append(LineGroupConfig(device=device, line_number=i))
     selects.append(RelaySwitchWhenCloseValve(device))
     selects.append(RelaySwitchWhenAlert(device))
-    for i in range (0, device.get_number_of_connected_wireless_sensors()):
-        selects.append(WirelessSensorGroupConfig(device,device.wireless_sensors[i],i+1))
+    for i in range(0, device.get_number_of_connected_wireless_sensors()):
+        if device.get_dual_group_mode():
+            selects.append(WirelessSensorGroupConfig(device, device.wireless_sensors[i], i+1))
     async_add_entities(selects, update_before_add=False)
+
+
 class LineTypeConfig(SelectEntity):
     def __init__(self, device: NeptunSmart, line_number):
         self._device = device
@@ -38,7 +42,7 @@ class LineTypeConfig(SelectEntity):
             self._state = False
         else:
             self._state = True
-        self._device.set_line_type(self._line_number, self._state)
+        await self._device.set_line_type(self._line_number, self._state)
 
     @property
     def options(self) -> list[str]:
@@ -83,7 +87,7 @@ class LineGroupConfig(SelectEntity):
             self._state = 2
         else:
             self._state = 3
-        self._device.set_line_group(self._line_number, self._state)
+        await self._device.set_line_group(self._line_number, self._state)
 
     @property
     def options(self) -> list[str]:
@@ -106,6 +110,7 @@ class LineGroupConfig(SelectEntity):
             self._attr_current_option = "Second"
         else:
             self._attr_current_option = "Both"
+        self._attr_available = self._device.get_dual_group_mode()
 
 
 class RelaySwitchWhenCloseValve(SelectEntity):
@@ -133,7 +138,7 @@ class RelaySwitchWhenCloseValve(SelectEntity):
             self._state = 2
         else:
             self._state = 3
-        self._device.set_relay_config_valve(self._state)
+        await self._device.set_relay_config_valve(self._state)
 
     @property
     def options(self) -> list[str]:
@@ -185,7 +190,7 @@ class RelaySwitchWhenAlert(SelectEntity):
             self._state = 2
         else:
             self._state = 3
-        self._device.set_relay_config_alert(self._state)
+        await self._device.set_relay_config_alert(self._state)
 
     @property
     def options(self) -> list[str]:
@@ -235,7 +240,7 @@ class WirelessSensorGroupConfig(SelectEntity):
             self._state = 2
         else:
             self._state = 3
-        self._sensor.set_group_config(self._state)
+        await self._sensor.set_group_config(self._state)
 
     @property
     def options(self) -> list[str]:
