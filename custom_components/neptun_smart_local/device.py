@@ -84,7 +84,8 @@ class NeptunSmart:
             self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
                 NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
         except ModbusException as value_error:
-            await self._hub.disconnect()
+            # await self._hub.disconnect()
+            _LOGGER.warning(f"Error update module {self._name} info {value_error.string}")
         for sensor in self.wireless_sensors:
             await sensor.update()
         for counter in self.counters:
@@ -112,9 +113,10 @@ class NeptunSmart:
         return self._first_group_valve_is_open
 
     async def write_config_register(self):
-        # self._hub.connect()
-        await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
-        # self._hub.disconnect()
+        try:
+            await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
+        except ModbusException as value_error:
+            _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
 
     async def set_first_group_valve_state(self,state):
         self._first_group_valve_is_open = state
@@ -229,8 +231,11 @@ class NeptunSmart:
 
     async def write_line_config_register(self):
         # self._hub.connect()
-        await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
-        await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
+        try:
+            await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
+            await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
+        except ModbusException as value_error:
+            _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
         # self._hub.disconnect()
 
     def get_line_status(self, line_number):
@@ -256,7 +261,10 @@ class NeptunSmart:
         await self._write_relay_config_register()
 
     async def _write_relay_config_register(self):
-        await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
+        try:
+            await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
+        except ModbusException as value_error:
+            _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
 
     def get_relay_config_alert(self) -> int:
         return int(self._switch_when_alert)
@@ -293,7 +301,7 @@ class WirelessSensor():
                 self._address_value, 1)
             self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
         except ModbusException as value_error:
-            _LOGGER.warning("modbus Exception")
+            _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
 
 
     def update_data(self, config, status_bits):
@@ -311,8 +319,11 @@ class WirelessSensor():
         return self._config
 
     async def set_group_config(self, config):
-        await self._hub.write_holding_register(address=self._address_config, value=config)
-
+        try:
+            await self._hub.write_holding_register(address=self._address_config, value=config)
+        except ModbusException as value_error:
+            _LOGGER.error(
+                f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
     def get_battery_level(self):
         return self._battery_level
 
@@ -342,7 +353,7 @@ class Counter():
         try:
             self._value = await self._hub.read_holding_register_uint32(self._address, 2)
         except ModbusException as value_error:
-            _LOGGER.warning("modbus Exception")
+            _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
 
     def get_value(self):
         return self._value
