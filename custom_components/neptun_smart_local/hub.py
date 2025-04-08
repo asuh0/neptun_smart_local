@@ -62,6 +62,7 @@ class modbus_hub:
         return result
 
     async def read_holding_register_uint32(self, address, count):
+        result_reg = None
         result_reg = await self._modbus.async_pb_call(
             240, address, 2, "holding"
         )
@@ -71,6 +72,7 @@ class modbus_hub:
         return result
 
     async def read_holding_register_bits(self, address, count):
+        result_reg = None
         result_reg = await self._modbus.async_pb_call(
             240, address, 1, "holding"
         )

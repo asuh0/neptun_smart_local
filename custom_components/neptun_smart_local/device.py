@@ -3,10 +3,11 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
-
+import async_timeout
 from bitstring import BitArray
 from homeassistant.core import HomeAssistant
 from pymodbus import ModbusException
+from pymodbus.exceptions import ModbusIOException
 
 from .hub import modbus_hub
 from .registers import NeptunSmartRegisters
@@ -47,45 +48,50 @@ class NeptunSmart:
 
     async def update(self):
         try:
-            self._config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.module_config, 1)
-            self._first_group_valve_is_open = bool(self._config_bits[7])
-            self._second_group_valve_is_open = bool(self._config_bits[6])
-            self._floor_washing_mode = bool(self._config_bits[15])
-            self._first_group_alarm = bool(self._config_bits[14])
-            self._second_group_alarm = bool(self._config_bits[13])
-            self._discharge_wireless_sensors = bool(self._config_bits[12])
-            self._lost_wireless_sensors = bool(self._config_bits[11])
-            self._connecting_wireless_sensors_mode = bool(self._config_bits[8])
-            self._dual_group_mode = bool(self._config_bits[5])
-            self._close_valve_when_loss_sensor = bool(self._config_bits[4])
-            self._lock_buttons = bool(self._config_bits[3])
-            self._config_line_1_2_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, 1)
-            self._line_type[1] = bool(self._config_line_1_2_bits[5])
-            self._line_type[2] = bool(self._config_line_1_2_bits[13])
-            self._line_group[1] = BitArray([self._config_line_1_2_bits[6], self._config_line_1_2_bits[
-                7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-            self._line_group[2] = BitArray([self._config_line_1_2_bits[14], self._config_line_1_2_bits[
-                15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-            self._config_line_3_4_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, 1)
-            self._line_type[3] = bool(self._config_line_3_4_bits[5])
-            self._line_type[4] = bool(self._config_line_3_4_bits[13])
-            self._line_group[3] = BitArray([self._config_line_3_4_bits[6], self._config_line_3_4_bits[
-                7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-            self._line_group[4] = BitArray([self._config_line_3_4_bits[14], self._config_line_3_4_bits[
-                15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
-            self._status_wired_line_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.status_wired_line, 1)
-            self._line_status[1] = bool(self._status_wired_line_bits[15])
-            self._line_status[2] = bool(self._status_wired_line_bits[14])
-            self._line_status[3] = bool(self._status_wired_line_bits[13])
-            self._line_status[4] = bool(self._status_wired_line_bits[12])
-            self._relay_config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.relay_config, 1)
-            self._switch_when_close_valve = BitArray([self._relay_config_bits[12], self._relay_config_bits[13]])._getuint()
-            self._switch_when_alert = BitArray([self._relay_config_bits[14], self._relay_config_bits[15]])._getuint()
-            self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
-                NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
+            async with async_timeout.timeout(5):
+                self._config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.module_config, 1)
+                self._first_group_valve_is_open = bool(self._config_bits[7])
+                self._second_group_valve_is_open = bool(self._config_bits[6])
+                self._floor_washing_mode = bool(self._config_bits[15])
+                self._first_group_alarm = bool(self._config_bits[14])
+                self._second_group_alarm = bool(self._config_bits[13])
+                self._discharge_wireless_sensors = bool(self._config_bits[12])
+                self._lost_wireless_sensors = bool(self._config_bits[11])
+                self._connecting_wireless_sensors_mode = bool(self._config_bits[8])
+                self._dual_group_mode = bool(self._config_bits[5])
+                self._close_valve_when_loss_sensor = bool(self._config_bits[4])
+                self._lock_buttons = bool(self._config_bits[3])
+                self._config_line_1_2_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, 1)
+                self._line_type[1] = bool(self._config_line_1_2_bits[5])
+                self._line_type[2] = bool(self._config_line_1_2_bits[13])
+                self._line_group[1] = BitArray([self._config_line_1_2_bits[6], self._config_line_1_2_bits[
+                    7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
+                self._line_group[2] = BitArray([self._config_line_1_2_bits[14], self._config_line_1_2_bits[
+                    15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
+                self._config_line_3_4_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, 1)
+                self._line_type[3] = bool(self._config_line_3_4_bits[5])
+                self._line_type[4] = bool(self._config_line_3_4_bits[13])
+                self._line_group[3] = BitArray([self._config_line_3_4_bits[6], self._config_line_3_4_bits[
+                    7]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
+                self._line_group[4] = BitArray([self._config_line_3_4_bits[14], self._config_line_3_4_bits[
+                    15]])._getuint()  # 1 = first group, 2 = second group, 3 = both groups
+                self._status_wired_line_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.status_wired_line, 1)
+                self._line_status[1] = bool(self._status_wired_line_bits[15])
+                self._line_status[2] = bool(self._status_wired_line_bits[14])
+                self._line_status[3] = bool(self._status_wired_line_bits[13])
+                self._line_status[4] = bool(self._status_wired_line_bits[12])
+                self._relay_config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.relay_config, 1)
+                self._switch_when_close_valve = BitArray([self._relay_config_bits[12], self._relay_config_bits[13]])._getuint()
+                self._switch_when_alert = BitArray([self._relay_config_bits[14], self._relay_config_bits[15]])._getuint()
+                self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
+                    NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
+        except TimeoutError:
+            _LOGGER.warning("Polling timed out")
+        except ModbusIOException as value_error:
+            _LOGGER.warning(f"Error update module {self._name} info ModbusIOException {value_error.string}")
         except ModbusException as value_error:
             # await self._hub.disconnect()
-            _LOGGER.warning(f"Error update module {self._name} info {value_error.string}")
+            _LOGGER.warning(f"Error update module {self._name} info ModbusException {value_error.string}")
         for sensor in self.wireless_sensors:
             await sensor.update()
         for counter in self.counters:
@@ -114,7 +120,10 @@ class NeptunSmart:
 
     async def write_config_register(self):
         try:
-            await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
+            async with async_timeout.timeout(5):
+                await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
+        except TimeoutError:
+            _LOGGER.warning("Pulling timed out")
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
 
@@ -232,8 +241,11 @@ class NeptunSmart:
     async def write_line_config_register(self):
         # self._hub.connect()
         try:
-            await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
-            await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
+            async with async_timeout.timeout(5):
+                await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, self._config_line_1_2_bits)
+                await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
+        except TimeoutError:
+            _LOGGER.warning("Pulling timed out")
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
         # self._hub.disconnect()
@@ -262,7 +274,10 @@ class NeptunSmart:
 
     async def _write_relay_config_register(self):
         try:
-            await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
+            async with async_timeout.timeout(5):
+                await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
+        except TimeoutError:
+            _LOGGER.warning("Pulling timed out")
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
 
@@ -295,11 +310,14 @@ class WirelessSensor():
 
     async def update(self):
         try:
-            wireless_sensor_config = await self._hub.read_holding_register_uint16(
-                self._address_config, 1)
-            wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
-                self._address_value, 1)
-            self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
+            async with async_timeout.timeout(5):
+                wireless_sensor_config = await self._hub.read_holding_register_uint16(
+                    self._address_config, 1)
+                wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
+                    self._address_value, 1)
+                self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
+        except TimeoutError:
+            _LOGGER.warning("Polling timed out")
         except ModbusException as value_error:
             _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
 
@@ -320,7 +338,10 @@ class WirelessSensor():
 
     async def set_group_config(self, config):
         try:
-            await self._hub.write_holding_register(address=self._address_config, value=config)
+            async with async_timeout.timeout(5):
+                await self._hub.write_holding_register(address=self._address_config, value=config)
+        except TimeoutError:
+            _LOGGER.warning("Pulling timed out")
         except ModbusException as value_error:
             _LOGGER.error(
                 f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
@@ -351,7 +372,12 @@ class Counter():
 
     async def update(self):
         try:
-            self._value = await self._hub.read_holding_register_uint32(self._address, 2)
+            async with async_timeout.timeout(5):
+                result = await self._hub.read_holding_register_uint32(self._address, 2)
+                if result is not None:
+                    self._value = result
+        except TimeoutError:
+            _LOGGER.warning("Pulling timed out")
         except ModbusException as value_error:
             _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
 
