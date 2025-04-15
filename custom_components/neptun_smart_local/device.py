@@ -87,6 +87,7 @@ class NeptunSmart:
                     NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
         except TimeoutError:
             _LOGGER.warning("Polling timed out")
+            return
         except ModbusIOException as value_error:
             _LOGGER.warning(f"Error update module {self._name} info ModbusIOException {value_error.string}")
         except ModbusException as value_error:
@@ -124,6 +125,7 @@ class NeptunSmart:
                 await self._hub.write_holding_register_bits(NeptunSmartRegisters.module_config, self._config_bits)
         except TimeoutError:
             _LOGGER.warning("Pulling timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
 
@@ -246,6 +248,7 @@ class NeptunSmart:
                 await self._hub.write_holding_register_bits(NeptunSmartRegisters.input_line_3_4_config, self._config_line_3_4_bits)
         except TimeoutError:
             _LOGGER.warning("Pulling timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
         # self._hub.disconnect()
@@ -278,6 +281,7 @@ class NeptunSmart:
                 await self._hub.write_holding_register_bits(NeptunSmartRegisters.relay_config, self._relay_config_bits)
         except TimeoutError:
             _LOGGER.warning("Pulling timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
 
@@ -317,9 +321,11 @@ class WirelessSensor():
                     self._address_value, 1)
                 self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
         except TimeoutError:
-            _LOGGER.warning("Polling timed out")
+            _LOGGER.warning("Polling WirelessSensor status timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
+            return
 
 
     def update_data(self, config, status_bits):
@@ -342,6 +348,7 @@ class WirelessSensor():
                 await self._hub.write_holding_register(address=self._address_config, value=config)
         except TimeoutError:
             _LOGGER.warning("Pulling timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.error(
                 f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
@@ -378,6 +385,7 @@ class Counter():
                     self._value = result
         except TimeoutError:
             _LOGGER.warning("Pulling timed out")
+            return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
 
