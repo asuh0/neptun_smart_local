@@ -90,9 +90,11 @@ class NeptunSmart:
             return
         except ModbusIOException as value_error:
             _LOGGER.warning(f"Error update module {self._name} info ModbusIOException {value_error.string}")
+            return
         except ModbusException as value_error:
             # await self._hub.disconnect()
             _LOGGER.warning(f"Error update module {self._name} info ModbusException {value_error.string}")
+            return
         for sensor in self.wireless_sensors:
             await sensor.update()
         for counter in self.counters:
@@ -128,6 +130,7 @@ class NeptunSmart:
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
+            return
 
     async def set_first_group_valve_state(self,state):
         self._first_group_valve_is_open = state
@@ -251,6 +254,7 @@ class NeptunSmart:
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
+            return
         # self._hub.disconnect()
 
     def get_line_status(self, line_number):
@@ -284,6 +288,7 @@ class NeptunSmart:
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
+            return
 
     def get_relay_config_alert(self) -> int:
         return int(self._switch_when_alert)
@@ -352,6 +357,7 @@ class WirelessSensor():
         except ModbusException as value_error:
             _LOGGER.error(
                 f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
+            return
     def get_battery_level(self):
         return self._battery_level
 
@@ -388,6 +394,7 @@ class Counter():
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
+            return
 
     def get_value(self):
         return self._value
