@@ -331,7 +331,9 @@ class WirelessSensor():
         except ModbusException as value_error:
             _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
             return
-
+        except BaseException:
+            _LOGGER.error("All Exceptions")
+            return
 
     def update_data(self, config, status_bits):
         self._config = config
@@ -358,6 +360,7 @@ class WirelessSensor():
             _LOGGER.error(
                 f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
             return
+
     def get_battery_level(self):
         return self._battery_level
 
@@ -394,6 +397,9 @@ class Counter():
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
+            return
+        except BaseException:
+            _LOGGER.error("All Exceptions")
             return
 
     def get_value(self):
