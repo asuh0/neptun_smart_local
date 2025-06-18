@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import logging
 import async_timeout
+from asyncio.exceptions import InvalidStateError
 from bitstring import BitArray
 from homeassistant.core import HomeAssistant
 from pymodbus import ModbusException
@@ -95,6 +96,9 @@ class NeptunSmart:
             # await self._hub.disconnect()
             _LOGGER.warning(f"Error update module {self._name} info ModbusException {value_error.string}")
             return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exceptions")
+            return
         for sensor in self.wireless_sensors:
             await sensor.update()
         for counter in self.counters:
@@ -131,7 +135,9 @@ class NeptunSmart:
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write config register, modbus Exception {value_error.string}")
             return
-
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exceptions")
+            return
     async def set_first_group_valve_state(self,state):
         self._first_group_valve_is_open = state
         self._config_bits[7] = int(state)
@@ -255,6 +261,9 @@ class NeptunSmart:
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write line config register, modbus Exception {value_error.string}")
             return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exceptions")
+            return
         # self._hub.disconnect()
 
     def get_line_status(self, line_number):
@@ -288,6 +297,9 @@ class NeptunSmart:
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error write relay config register, modbus Exception {value_error.string}")
+            return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exception")
             return
 
     def get_relay_config_alert(self) -> int:
@@ -331,6 +343,9 @@ class WirelessSensor():
         except ModbusException as value_error:
             _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
             return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exception")
+            return
         except BaseException:
             _LOGGER.error("All Exceptions")
             return
@@ -359,6 +374,9 @@ class WirelessSensor():
         except ModbusException as value_error:
             _LOGGER.error(
                 f"Error set group wireless sensor {self._address_config} modbus Exception {value_error.string}")
+            return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exception")
             return
 
     def get_battery_level(self):
@@ -397,6 +415,9 @@ class Counter():
             return
         except ModbusException as value_error:
             _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
+            return
+        except InvalidStateError as ex:
+            _LOGGER.error(f"InvalidStateError Exception")
             return
         except BaseException:
             _LOGGER.error("All Exceptions")
