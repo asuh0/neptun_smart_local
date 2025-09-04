@@ -68,7 +68,10 @@ class modbus_hub:
         )
         result = None
         if result_reg is not None:
-            result = self._client.convert_from_registers(result_reg.registers, data_type=self._client.DATATYPE.UINT32)
+            # Convert two 16-bit registers to 32-bit value
+            high_register = result_reg.registers[0]
+            low_register = result_reg.registers[1]
+            result = (high_register << 16) | low_register
         return result
 
     async def read_holding_register_bits(self, address, count):
