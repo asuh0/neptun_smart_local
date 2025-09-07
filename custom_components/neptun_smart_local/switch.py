@@ -10,16 +10,29 @@ from .const import DOMAIN
 SCAN_INTERVAL = timedelta(seconds=5)
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
     """Set up the switch platform."""
+    import logging
+    _LOGGER = logging.getLogger(__name__)
+    
     device: NeptunSmart = HomeAssistant.data[DOMAIN][config_entry.entry_id]
     switches = []
     switches.append(Valve_1_zone(device))
-    if device.get_dual_group_mode():
+    
+    dual_mode = device.get_dual_group_mode()
+    _LOGGER.error(f"🔧 НАСТРОЙКА ПЕРЕКЛЮЧАТЕЛЕЙ: dual_group_mode={dual_mode}")
+    
+    if dual_mode:
         switches.append(Valve_2_zone(device))
+        _LOGGER.error("✅ ДОБАВЛЕН ВТОРОЙ ВЕНТИЛЬ (Valve_2_zone)")
+    else:
+        _LOGGER.error("❌ ВТОРОЙ ВЕНТИЛЬ НЕ ДОБАВЛЕН - dual_group_mode ОТКЛЮЧЕН")
+        
     switches.append(Floor_washing_mode(device=device))
     switches.append(Connecting_wireless_sensors_mode(device))
     switches.append(Dual_group_mode(device))
     switches.append((Close_valve_when_lost_sensors_mode(device)))
     switches.append(Lock_buttons(device))
+    
+    _LOGGER.error(f"📊 СОЗДАНО {len(switches)} ПЕРЕКЛЮЧАТЕЛЕЙ")
     async_add_entities(switches, update_before_add=False)
 
 
@@ -47,6 +60,7 @@ class Valve_1_zone(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_first_group_valve_state()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -79,7 +93,8 @@ class Valve_2_zone(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_second_group_valve_state()
-        self._attr_available = self._device.get_dual_group_mode()
+        # Вентиль доступен только при подключении к устройству
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -113,6 +128,7 @@ class Floor_washing_mode(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_floor_washing_mode()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -149,6 +165,7 @@ class Connecting_wireless_sensors_mode(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_connecting_wireless_sensors_mode()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -185,6 +202,7 @@ class Dual_group_mode(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_dual_group_mode()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -221,6 +239,7 @@ class Close_valve_when_lost_sensors_mode(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_close_valve_when_lost_sensors_mode()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):
@@ -254,6 +273,7 @@ class Lock_buttons(SwitchEntity):
     async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         self._attr_is_on = self._device.get_lock_buttons()
+        self._attr_available = self._device.is_connected()
 
     @property
     def device_info(self):

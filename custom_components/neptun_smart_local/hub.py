@@ -1,15 +1,12 @@
 from __future__ import annotations
 from pymodbus import pymodbus_apply_logging_config
 import datetime
-# from pymodbus import ModbusException
-# from pymodbus.client import ModbusTcpClient, AsyncModbusTcpClient
-# from pymodbus.framer import FramerType
-from homeassistant.components.modbus import modbus
+from pymodbus import ModbusException
+from pymodbus.client import AsyncModbusTcpClient
+from pymodbus.framer import FramerType
 from homeassistant.core import HomeAssistant
 import logging
-
-from pymodbus import FramerType
-from pymodbus.client import AsyncModbusTcpClient
+import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 # pymodbus_apply_logging_config("DEBUG")
@@ -24,89 +21,127 @@ class modbus_hub:
             port=port,
             framer=FramerType.SOCKET,
             retries=3,
-            timeout=3,
+            timeout=5,
+            reconnect_delay=1,
         )
-        self._client_config = {
-            "name": "NameNeptunSmart",
-            "type": "tcp",
-            "delay": 0,
-            "port": self._port,
-            "timeout": 3,
-            "host": self._host,
-        }
-        self._modbus = modbus.ModbusHub(self._hass, self._client_config)
+        self._is_connected = False
 
     async def connect(self):
-        success = await self._modbus.async_setup()
-        if success:
-            _LOGGER.debug("Modbus has been setup")
-        else:
-            await self._modbus.async_close()
-            _LOGGER.error("Modbus setup was unsuccessful")
-            raise ValueError("Modbus setup was unsuccessful")
+        try:
+            if not self._client.connected:
+                await self._client.connect()
+            self._is_connected = True
+        except Exception as e:
+            _LOGGER.error(f"Ошибка подключения к Modbus {self._host}:{self._port}: {e}")
+            self._is_connected = False
+            raise ValueError(f"Не удалось подключиться к устройству: {e}")
 
     async def disconnect(self):
-        await self._modbus.async_close()
+        if self._client.connected:
+            await self._client.close()
+        self._is_connected = False
 
     async def read_holding_register_uint16(self, address, count):
-        result_reg = await self._modbus.async_pb_call(
-            240, address, 1, "holding"
-        )
-        result = None
-        if result_reg is not None:
-            result = int.from_bytes(
-                result_reg.registers[0].to_bytes(2, "little", signed=False),
-                "little",
-                signed=True,
-            )
-        return result
+        try:
+            # Проверяем подключение и переподключаемся при необходимости
+            if not self._client.connected:
+                await self.connect()
+            
+            result = await self._client.read_holding_registers(address, count=count, device_id=240)
+            if result.isError():
+                _LOGGER.debug(f"Ошибка Modbus при чтении регистра {address}: {result}")
+                return None
+            
+            if result.registers:
+                return result.registers[0]
+            return None
+        except Exception as e:
+            _LOGGER.debug(f"Ошибка при чтении регистра {address}: {e}")
+            return None
 
     async def read_holding_register_uint32(self, address, count):
-        result_reg = None
-        result_reg = await self._modbus.async_pb_call(
-            240, address, 2, "holding"
-        )
-        result = None
-        if result_reg is not None:
-            # Convert two 16-bit registers to 32-bit value
-            high_register = result_reg.registers[0]
-            low_register = result_reg.registers[1]
-            result = (high_register << 16) | low_register
-        return result
+        try:
+            # Проверяем подключение и переподключаемся при необходимости
+            if not self._client.connected:
+                await self.connect()
+            
+            # Используем device_id для pymodbus 3.11.1
+            result = await self._client.read_holding_registers(address, count=2, device_id=240)
+            if result.isError():
+                _LOGGER.debug(f"Ошибка Modbus при чтении 32-битного регистра {address}: {result}")
+                return None
+            
+            if result.registers and len(result.registers) >= 2:
+                # Convert two 16-bit registers to 32-bit value
+                high_register = result.registers[0]
+                low_register = result.registers[1]
+                return (high_register << 16) | low_register
+            return None
+        except Exception as e:
+            # Не логируем ошибки подключения как предупреждения, только как отладочные сообщения
+            if "Not connected" in str(e) or "Connection" in str(e):
+                _LOGGER.debug(f"Ошибка подключения при чтении 32-битного регистра {address}: {e}")
+            else:
+                _LOGGER.warning(f"Ошибка при чтении 32-битного регистра {address}: {e}")
+            return None
 
     async def read_holding_register_bits(self, address, count):
-        result_reg = None
-        result_reg = await self._modbus.async_pb_call(
-            240, address, 1, "holding"
-        )
-        if result_reg is not None:
-            uint = int.from_bytes(
-                result_reg.registers[0].to_bytes(2, "little", signed=False),
-                "little",
-                signed=True,
-            )
-            bitlist = [int(x) for x in bin(uint)[2:]]
-            while len(bitlist) < 16:
-                bitlist.insert(0, 0)
-            return bitlist
-        return None
+        try:
+            # Проверяем подключение и переподключаемся при необходимости
+            if not self._client.connected:
+                await self.connect()
+            
+            # Используем device_id для pymodbus 3.11.1
+            result = await self._client.read_holding_registers(address, count=1, device_id=240)
+            if result.isError():
+                _LOGGER.debug(f"Ошибка Modbus при чтении битов регистра {address}: {result}")
+                return None
+            
+            if result.registers:
+                uint = result.registers[0]
+                bitlist = [int(x) for x in bin(uint)[2:]]
+                while len(bitlist) < 16:
+                    bitlist.insert(0, 0)
+                return bitlist
+            return None
+        except Exception as e:
+            # Не логируем ошибки подключения как предупреждения, только как отладочные сообщения
+            if "Not connected" in str(e) or "Connection" in str(e):
+                _LOGGER.debug(f"Ошибка подключения при чтении битов регистра {address}: {e}")
+            else:
+                _LOGGER.warning(f"Ошибка при чтении битов регистра {address}: {e}")
+            return None
 
     async def write_holding_register_bits(self, address, bits) -> None:
-        value = 0
-        for bit in bits:
-            value = (value << 1) | bit
-        await self._modbus.async_pb_call(
-            240,
-            address,
-            value,
-            "write_register",
-        )
+        try:
+            # Проверяем подключение и переподключаемся при необходимости
+            if not self._client.connected:
+                await self.connect()
+            
+            value = 0
+            for bit in bits:
+                value = (value << 1) | bit
+            
+            # Используем device_id для pymodbus 3.11.1
+            result = await self._client.write_register(address, value, device_id=240)
+            if result.isError():
+                _LOGGER.warning(f"Ошибка Modbus при записи битов в регистр {address}: {result}")
+                raise Exception(f"Modbus write error: {result}")
+        except Exception as e:
+            _LOGGER.warning(f"Ошибка при записи битов в регистр {address}: {e}")
+            raise
 
     async def write_holding_register(self, address, value) -> None:
-        await self._modbus.async_pb_call(
-            240,
-            address,
-            value,
-            "write_register",
-        )
-
+        try:
+            # Проверяем подключение и переподключаемся при необходимости
+            if not self._client.connected:
+                await self.connect()
+            
+            # Используем device_id для pymodbus 3.11.1
+            result = await self._client.write_register(address, value, device_id=240)
+            if result.isError():
+                _LOGGER.warning(f"Ошибка Modbus при записи значения {value} в регистр {address}: {result}")
+                raise Exception(f"Modbus write error: {result}")
+        except Exception as e:
+            _LOGGER.warning(f"Ошибка при записи значения {value} в регистр {address}: {e}")
+            raise

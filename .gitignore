@@ -1,0 +1,2 @@
+*.log
+custom_components/neptun_smart_local/__pycache__/
