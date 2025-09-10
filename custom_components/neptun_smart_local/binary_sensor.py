@@ -10,7 +10,21 @@ from homeassistant.components.binary_sensor import (
 )
 from . import NeptunSmart
 from .device import WirelessSensor
+import json
+import os
 SCAN_INTERVAL = timedelta(seconds=10)
+
+def get_integration_version():
+    """Получает версию интеграции из manifest.json"""
+    try:
+        # Получаем путь к директории текущего модуля
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        manifest_path = os.path.join(current_dir, "manifest.json")
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            manifest = json.load(f)
+            return manifest.get("version", "unknown")
+    except Exception:
+        return "unknown"
 
 
 async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
@@ -32,11 +46,11 @@ async def async_setup_entry(HomeAssistant, config_entry, async_add_entities):
 
 
 class MainModule(BinarySensorEntity):
+    """Основной модуль - общая авария системы"""
 
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
     def __init__(self, device: NeptunSmart):
-
         self._device = device
         if (self._device.get_first_group_alarm()) | (self._device.get_second_group_alarm()):
             self._is_on = True
@@ -52,13 +66,14 @@ class MainModule(BinarySensorEntity):
         return {
             "identifiers": {(DOMAIN, self._device.get_name())},
             "name": self._device.get_name(),
-            "sw_version": "none",
+            "sw_version": get_integration_version(),
             "model": "Neptun Smart",
             "manufacturer": "Teploluxe",
         }
 
     @property
     def icon(self):
+        # Простая иконка для HomeKit
         return "mdi:water-pump"
 
     @property
@@ -74,16 +89,16 @@ class MainModule(BinarySensorEntity):
 
 
 class FirstGroupModuleAlert(BinarySensorEntity):
+    """Авария первой группы - датчик протечки воды"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_first_group_alarm_module_alert"
-        # self._attr_available = True
         # Отображаемое имя
-        self._attr_name = "First group alarm"
+        self._attr_name = "First group water leak"
 
     @property
     def device_info(self):
@@ -91,10 +106,8 @@ class FirstGroupModuleAlert(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._device.get_first_group_alarm():
-            return "mdi:alert"
-        else:
-            return "mdi:alert-outline"
+        # Простая иконка для HomeKit
+        return "mdi:water"
 
     @property
     def is_on(self) -> bool:
@@ -102,17 +115,16 @@ class FirstGroupModuleAlert(BinarySensorEntity):
 
 
 class SecondGroupModuleAlert(BinarySensorEntity):
+    """Авария второй группы - датчик протечки воды"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart):
-
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_second_group_alarm_module_alert"
         # Отображаемое имя
-        self._attr_name = "Second group alarm"
-        # self._attr_enabled = False
+        self._attr_name = "Second group water leak"
 
     @property
     def device_info(self):
@@ -120,10 +132,8 @@ class SecondGroupModuleAlert(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._device.get_second_group_alarm():
-            return "mdi:alert"
-        else:
-            return "mdi:alert-outline"
+        # Простая иконка для HomeKit
+        return "mdi:water"
 
     @property
     def is_on(self) -> bool:
@@ -134,16 +144,16 @@ class SecondGroupModuleAlert(BinarySensorEntity):
 
 
 class DischargeWirelessSensors(BinarySensorEntity):
+    """Разряд беспроводных датчиков"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.BATTERY
 
     def __init__(self, device: NeptunSmart):
-
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_discharge_wireless_sensors"
         # Отображаемое имя
-        self._attr_name = "Discharge Wireless Sensors"
+        self._attr_name = "Wireless sensors battery low"
 
     @property
     def device_info(self):
@@ -151,10 +161,8 @@ class DischargeWirelessSensors(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._device.get_discharge_wireless_sensors():
-            return "mdi:battery-alert"
-        else:
-            return "mdi:battery-check"
+        # Простая иконка для HomeKit
+        return "mdi:battery"
 
     @property
     def is_on(self) -> bool:
@@ -162,16 +170,16 @@ class DischargeWirelessSensors(BinarySensorEntity):
 
 
 class LostWirelessSensors(BinarySensorEntity):
+    """Потеря связи с беспроводными датчиками"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart):
-
         self._device = device
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_lost_wireless_sensors"
         # Отображаемое имя
-        self._attr_name = "Lost Wireless Sensors"
+        self._attr_name = "Wireless sensors connection lost"
 
     @property
     def device_info(self):
@@ -179,10 +187,8 @@ class LostWirelessSensors(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._device.get_lost_wireless_sensors():
-            return "mdi:lan-disconnect"
-        else:
-            return "mdi:lan-connect"
+        # Простая иконка для HomeKit
+        return "mdi:wifi"
 
     @property
     def is_on(self) -> bool:
@@ -190,17 +196,17 @@ class LostWirelessSensors(BinarySensorEntity):
 
 
 class WiredLineAlertStatus(BinarySensorEntity):
+    """Статус аварии проводных линий"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
-    def __init__(self, device:NeptunSmart, line_number):
-
+    def __init__(self, device: NeptunSmart, line_number):
         self._device = device
         self._line_number = line_number
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_WiredAlertStatus_line{line_number}"
         # Отображаемое имя
-        self._attr_name = f"Wired line {line_number} alert status"
+        self._attr_name = f"Wired line {line_number} water leak"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -209,10 +215,8 @@ class WiredLineAlertStatus(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._device.get_line_status(line_number=self._line_number):
-            return "mdi:alert"
-        else:
-            return "mdi:alert-outline"
+        # Простая иконка для HomeKit
+        return "mdi:water"
 
     @property
     def is_on(self) -> bool:
@@ -220,18 +224,18 @@ class WiredLineAlertStatus(BinarySensorEntity):
 
 
 class WirelessSensorAlertStatus(BinarySensorEntity):
+    """Статус аварии беспроводного датчика"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
-
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_WirelessAlertStatus_sensor{sensor_number}"
         # Отображаемое имя
-        self._attr_name = f"Wireless sensor {sensor_number} alert status"
+        self._attr_name = f"Wireless sensor {sensor_number} water leak"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -240,10 +244,8 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._sensor.get_alert_status():
-            return "mdi:alert"
-        else:
-            return "mdi:alert-outline"
+        # Простая иконка для HomeKit
+        return "mdi:water"
 
     @property
     def is_on(self) -> bool:
@@ -251,18 +253,18 @@ class WirelessSensorAlertStatus(BinarySensorEntity):
 
 
 class WirelessSensorDischargeStatus(BinarySensorEntity):
+    """Статус разряда беспроводного датчика"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.BATTERY
 
-    def __init__(self, device:NeptunSmart, sensor_number, sensor:WirelessSensor):
-
+    def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_WirelessDischargeStatus_sensor{sensor_number}"
         # Отображаемое имя
-        self._attr_name = f"Wireless sensor {sensor_number} discharge status"
+        self._attr_name = f"Wireless sensor {sensor_number} battery low"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -271,10 +273,8 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._sensor.get_discharge_status():
-            return "mdi:battery-alert"
-        else:
-            return "mdi:battery-check"
+        # Простая иконка для HomeKit
+        return "mdi:battery"
 
     @property
     def is_on(self) -> bool:
@@ -282,18 +282,18 @@ class WirelessSensorDischargeStatus(BinarySensorEntity):
 
 
 class WirelessSensorLostStatus(BinarySensorEntity):
+    """Статус потери связи с беспроводным датчиком"""
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
     def __init__(self, device: NeptunSmart, sensor_number, sensor: WirelessSensor):
-
         self._device = device
         self._sensor_number = sensor_number
         self._sensor = sensor
         # Уникальный идентификатор
         self._attr_unique_id = f"{device.get_name()}_WirelessLostStatus_sensor{sensor_number}"
         # Отображаемое имя
-        self._attr_name = f"Wireless sensor {sensor_number} lost status"
+        self._attr_name = f"Wireless sensor {sensor_number} connection lost"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
@@ -302,10 +302,8 @@ class WirelessSensorLostStatus(BinarySensorEntity):
 
     @property
     def icon(self):
-        if self._sensor.get_lost_sensor_status():
-            return "mdi:lan-disconnect"
-        else:
-            return "mdi:lan-connect"
+        # Простая иконка для HomeKit
+        return "mdi:wifi"
 
     @property
     def is_on(self) -> bool:

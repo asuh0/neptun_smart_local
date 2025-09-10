@@ -56,46 +56,56 @@ class NeptunSmart:
     async def init_sensors(self):
         try:
             await self._hub.connect()
-        except ValueError as e:
+        except (ValueError, asyncio.CancelledError) as e:
             _LOGGER.error(f"Не удалось подключиться к устройству {self._name}: {e}")
             # Не выбрасываем исключение, чтобы интеграция могла работать в автономном режиме
             return
         
-        self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
-            NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
-        
-        # Проверяем, что мы получили корректное значение
-        if self._wireless_sensors_connected is None:
-            _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков, используем значение по умолчанию 0")
-            self._wireless_sensors_connected = 0
-        
-        for i in range(0, self._wireless_sensors_connected):
-            wireless_sensor_config = await self._hub.read_holding_register_uint16(
-                NeptunSmartRegisters.first_wireless_sensor_config + i, 1)
-            wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
-                NeptunSmartRegisters.first_wireless_sensor_status + i, 1)
+        try:
+            self._wireless_sensors_connected = await self._hub.read_holding_register_uint16(
+                NeptunSmartRegisters.count_of_connected_wireless_sensors, 1)
             
-            # Проверяем, что данные получены корректно
-            if wireless_sensor_config is not None and wireless_sensor_status_bits is not None:
-                self.wireless_sensors.append(
-                    WirelessSensor(self._hub, NeptunSmartRegisters.first_wireless_sensor_config + i,
-                                   NeptunSmartRegisters.first_wireless_sensor_status + i, wireless_sensor_config,
-                                   wireless_sensor_status_bits))
-            else:
-                _LOGGER.warning(f"Не удалось получить данные для беспроводного датчика {i}")
+            # Проверяем, что мы получили корректное значение
+            if self._wireless_sensors_connected is None:
+                _LOGGER.debug("Не удалось получить количество подключенных беспроводных датчиков, используем значение по умолчанию 0")
+                self._wireless_sensors_connected = 0
+            
+            for i in range(0, self._wireless_sensors_connected):
+                try:
+                    wireless_sensor_config = await self._hub.read_holding_register_uint16(
+                        NeptunSmartRegisters.first_wireless_sensor_config + i, 1)
+                    wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
+                        NeptunSmartRegisters.first_wireless_sensor_status + i, 1)
+                    
+                    # Проверяем, что данные получены корректно
+                    if wireless_sensor_config is not None and wireless_sensor_status_bits is not None:
+                        self.wireless_sensors.append(
+                            WirelessSensor(self._hub, NeptunSmartRegisters.first_wireless_sensor_config + i,
+                                           NeptunSmartRegisters.first_wireless_sensor_status + i, wireless_sensor_config,
+                                           wireless_sensor_status_bits))
+                    else:
+                        _LOGGER.warning(f"Не удалось получить данные для беспроводного датчика {i}")
+                except Exception as e:
+                    _LOGGER.warning(f"Ошибка при инициализации беспроводного датчика {i}: {e}")
 
-        for i in range(0, 8):
-            counter_status = await self._hub.read_holding_register_bits(NeptunSmartRegisters.first_counter_config + i, 1)
-            if counter_status is not None and counter_status[15] == 1:
-                counter_value = await self._hub.read_holding_register_uint32(NeptunSmartRegisters.first_counter + (i * 2), 2)
-                if counter_value is not None:
-                    self.counters.append(
-                        Counter(counter_value,
-                                NeptunSmartRegisters.first_counter + (i * 2), self._hub))
-                else:
-                    _LOGGER.debug(f"Не удалось получить значение счетчика {i}")
-            elif counter_status is None:
-                _LOGGER.debug(f"Не удалось получить статус счетчика {i}")
+            for i in range(0, 8):
+                try:
+                    counter_status = await self._hub.read_holding_register_bits(NeptunSmartRegisters.first_counter_config + i, 1)
+                    if counter_status is not None and counter_status[15] == 1:
+                        counter_value = await self._hub.read_holding_register_uint32(NeptunSmartRegisters.first_counter + (i * 2), 2)
+                        if counter_value is not None:
+                            self.counters.append(
+                                Counter(counter_value,
+                                        NeptunSmartRegisters.first_counter + (i * 2), self._hub))
+                        else:
+                            _LOGGER.debug(f"Не удалось получить значение счетчика {i}")
+                    elif counter_status is None:
+                        _LOGGER.debug(f"Не удалось получить статус счетчика {i}")
+                except Exception as e:
+                    _LOGGER.warning(f"Ошибка при инициализации счетчика {i}: {e}")
+        except Exception as e:
+            _LOGGER.error(f"Ошибка при инициализации датчиков для {self._name}: {e}")
+            # Продолжаем работу даже при ошибках инициализации
 
     async def _check_and_reconnect(self):
         """Проверяет подключение и пытается переподключиться при необходимости"""
@@ -108,6 +118,10 @@ class NeptunSmart:
             # Если не подключен, пытаемся подключиться
             _LOGGER.info(f"Попытка подключения к устройству {self._name}")
             await self._hub.connect()
+            
+            # Добавляем небольшую задержку после подключения для стабилизации
+            await asyncio.sleep(0.2)
+            
             self._is_connected = True
             _LOGGER.info(f"Успешно подключились к устройству {self._name}")
             return True
@@ -124,7 +138,7 @@ class NeptunSmart:
                 self._is_connected = False
                 return
                 
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(15):
                 self._config_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.module_config, 1)
                 
                 # Проверяем, что данные получены корректно
@@ -137,7 +151,7 @@ class NeptunSmart:
                 self._is_connected = True
                 
                 # Обновляем состояние только если данные получены корректно
-                if len(self._config_bits) >= 16:  # Проверяем, что у нас достаточно битов
+                if self._config_bits is not None and len(self._config_bits) >= 16:  # Проверяем, что у нас достаточно битов
                     self._first_group_valve_is_open = bool(self._config_bits[7])
                     self._second_group_valve_is_open = bool(self._config_bits[6])
                     self._floor_washing_mode = bool(self._config_bits[15])
@@ -157,6 +171,8 @@ class NeptunSmart:
                     _LOGGER.error(f"📡 БЕСПРОВОДНЫЕ СЕНСОРЫ: discharge={self._discharge_wireless_sensors}, lost={self._lost_wireless_sensors}")
                 else:
                     _LOGGER.warning(f"Недостаточно битов в конфигурации модуля: получено {len(self._config_bits) if self._config_bits else 0} битов, требуется 16")
+                    # Не обновляем состояние при проблемах с данными
+                    return
                 self._config_line_1_2_bits = await self._hub.read_holding_register_bits(NeptunSmartRegisters.input_line_1_2_config, 1)
                 
                 # Проверяем, что данные получены корректно
@@ -211,25 +227,30 @@ class NeptunSmart:
                 else:
                     _LOGGER.error(f"📊 ПОДКЛЮЧЕНО БЕСПРОВОДНЫХ СЕНСОРОВ: {self._wireless_sensors_connected}")
         except TimeoutError:
-            _LOGGER.debug(f"Polling timed out for {self._name}")
+            _LOGGER.warning(f"Polling timed out for {self._name} - устройство не отвечает")
             # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
             self._connection_attempts = 0
             self._is_connected = False
             return
         except ModbusIOException as value_error:
-            _LOGGER.debug(f"ModbusIOException for {self._name}: {value_error.string}")
+            _LOGGER.warning(f"ModbusIOException for {self._name}: {value_error.string}")
             # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
             self._connection_attempts = 0
             self._is_connected = False
             return
         except ModbusException as value_error:
-            _LOGGER.debug(f"ModbusException for {self._name}: {value_error.string}")
+            _LOGGER.warning(f"ModbusException for {self._name}: {value_error.string}")
             # Сбрасываем счетчик попыток, чтобы попробовать переподключиться в следующий раз
             self._connection_attempts = 0
             self._is_connected = False
             return
         except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exceptions")
+            _LOGGER.error(f"InvalidStateError Exceptions for {self._name}")
+            self._is_connected = False
+            return
+        except Exception as e:
+            _LOGGER.error(f"Неожиданная ошибка при обновлении {self._name}: {e}")
+            self._is_connected = False
             return
         for sensor in self.wireless_sensors:
             await sensor.update()
@@ -467,23 +488,28 @@ class WirelessSensor():
 
     async def update(self):
         try:
-            async with async_timeout.timeout(5):
+            async with async_timeout.timeout(10):
                 wireless_sensor_config = await self._hub.read_holding_register_uint16(
                     self._address_config, 1)
                 wireless_sensor_status_bits = await self._hub.read_holding_register_bits(
                     self._address_value, 1)
-                self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
+                
+                # Проверяем, что данные получены корректно
+                if wireless_sensor_config is not None and wireless_sensor_status_bits is not None:
+                    self.update_data(wireless_sensor_config, wireless_sensor_status_bits)
+                else:
+                    _LOGGER.debug(f"Не удалось получить данные для беспроводного датчика {self._address_config}")
         except TimeoutError:
-            _LOGGER.warning("Polling WirelessSensor status timed out")
+            _LOGGER.debug(f"Polling WirelessSensor {self._address_config} status timed out")
             return
         except ModbusException as value_error:
-            _LOGGER.error(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
+            _LOGGER.debug(f"Error update wireless sensor {self._address_config} modbus Exception {value_error.string}")
             return
         except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exception")
+            _LOGGER.debug(f"InvalidStateError Exception for wireless sensor {self._address_config}")
             return
-        except BaseException:
-            _LOGGER.error("All Exceptions")
+        except Exception as e:
+            _LOGGER.debug(f"Unexpected error updating wireless sensor {self._address_config}: {e}")
             return
 
     def update_data(self, config, status_bits):
@@ -542,21 +568,23 @@ class Counter():
 
     async def update(self):
         try:
-            async with async_timeout.timeout(5):
+            async with async_timeout.timeout(10):
                 result = await self._hub.read_holding_register_uint32(self._address, 2)
                 if result is not None:
                     self._value = result
+                else:
+                    _LOGGER.debug(f"Не удалось получить значение счетчика {self._address}")
         except TimeoutError:
-            _LOGGER.warning("Pulling timed out")
+            _LOGGER.debug(f"Polling counter {self._address} timed out")
             return
         except ModbusException as value_error:
-            _LOGGER.warning(f"Error update counter {self._address} modbus Exception {value_error.string}")
+            _LOGGER.debug(f"Error update counter {self._address} modbus Exception {value_error.string}")
             return
         except InvalidStateError as ex:
-            _LOGGER.error(f"InvalidStateError Exception")
+            _LOGGER.debug(f"InvalidStateError Exception for counter {self._address}")
             return
-        except BaseException:
-            _LOGGER.error("All Exceptions")
+        except Exception as e:
+            _LOGGER.debug(f"Unexpected error updating counter {self._address}: {e}")
             return
 
     def get_value(self):
